@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+        <meta name="author" content="wong2" />
+        <link rel="stylesheet" href="css/bootstrap.min.css" />
+        <link rel="stylesheet" href="css/style.css" />
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDVwtjIUmIdX-GInth2K3C0D59PZ2Qoz3Q&sensor=false"></script>
+    </head>
+    <body>
+        <button id="start_btn" class="btn btn-primary btn-large centered">START</button>
+        <div id="map_canvas" style="width:100%; height:100%;"></div>
+        <div id="curtain"></div>
+        <div id="end_text" class="centered" style="margin-left: -250px">择一城终老，携一人白首</div>
+        <audio preload="auto" id="music">
+            <source src="music/baby.ogg" type="audio/ogg" />
+            <source src="music/baby.mp3" type="audio/mpeg" />
+        </audio>
+		
+        <script type="text/javascript" src="js/jquery.min.js"></script>
+        <script type="text/javascript" src="js/screenfull.min.js"></script>
+        <script type="text/javascript">
+        !function(){
+            $("#start_btn").click(function(){
+                screenfull&& screenfull.request();
+                $(this).remove();
+                init();
+            });
+
+            var map, marker_me, marker_you;
+
+            var WUHAN = new google.maps.LatLng(30.619004, 114.301757),
+                GUILIN = new google.maps.LatLng(25.311752,110.297927);
+                HUNAN = new google.maps.LatLng(27.488781,111.972656);
+
+            var DEFAULT_CENTER = new google.maps.LatLng(29.075375, 60.46875),
+                HEART_ISLAND = new google.maps.LatLng(43.978549,15.383574);
+
+            function smoothZoom(dest_zoom, callback){
+                callback = callback || function(){};
+
+                var now_zoom = map.getZoom();
+                if(now_zoom == dest_zoom){
+                    callback();
+                }
+                var increm = now_zoom < dest_zoom ? 1:-1;
+                var timeout = setInterval(function(){
+                    now_zoom += increm;
+                    map.setZoom(now_zoom);
+                    if(now_zoom == dest_zoom){
+                        clearTimeout(timeout);
+                        setTimeout(function(){
+                            callback();
+                        }, 700);
+                    }
+                }, 800);
+            }
+
+            function loopInfoWindows(infowindows, interval, callback, keep_last){
+                var i = 0, len = infowindows.length;
+                var timeout = setInterval(function(){
+                    i > 0 && infowindows[i-1].close();
+                    infowindows[i].open(map);
+                    if(++i == len){
+                        clearInterval(timeout);
+                        !keep_last && infowindows[i-1].close();
+                        (callback || function(){})();
+                    }
+                }, interval || 1000); 
+            }
+
+            window.theEnd = function(){
+                marker_you.setAnimation(google.maps.Animation.BOUNCE);
+                setTimeout(function(){
+                    $("#curtain").animate({
+                        height: $(window).height()
+                    }, 6000, function(){
+                        $("#end_text").fadeIn("slow");
+                    });
+                }, 3000);
+            }
+			
+			/**初始化地图**/
+			 function init() {
+                 //play the background music
+                var music =  document.getElementById("music");
+                music.play();
+
+                map = new google.maps.Map(document.getElementById("map_canvas"), {
+                    //center: new google.maps.LatLng(29.075375, 60.46875),
+                    center: new google.maps.LatLng(28.323724, 113.005371),
+                    zoom: 7,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                });
+
+                marker_me = new google.maps.Marker({ 
+                    position: WUHAN,    
+                    title: "我在武汉", 
+                    icon: "http://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
+                    animation: google.maps.Animation.DROP,
+                    map: map 
+                });
+                marker_you = new google.maps.Marker({ 
+                    position: GUILIN, 
+                    title: "你在桂林", 
+                    icon: "http://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png",
+                    animation: google.maps.Animation.DROP,
+                    map: map 
+                });
+
+                marker_me.setAnimation(google.maps.Animation.BOUNCE);
+				marker_you.setAnimation(google.maps.Animation.BOUNCE);
+                
+				setTimeout(function(){
+                    showDialogs();
+                }, 2000);
+				
+				setTimeout(function(){
+                    showHeartIsland();
+                }, 32000);
+            }
+			
+			/**开头的对话**/
+			function showDialogs(){
+                var i_love_you_s = [
+                      { point: "30.919004,114.401757", text: "傻瓜,我不在身边,你要照顾好自己哦" },
+                    { point: "25.511752,110.397927", text: "呜...我知道,你也要照顾好自己,快点回来看我,要想我" },
+                    { point: "30.919004,114.401757", text: "我一直都有想你,我对你的思念把一个小岛都变成爱心啦" },
+                    { point: "25.511752,110.397927", text: "哦？在哪里哦，我要去看看。" },
+					{ point: "30.919004,114.401757", text: "真的要看呀？" },
+                    { point: "25.511752,110.397927", text: "嗯！要看！" },
+					{ point: "30.919004,114.401757", text: "好,我带你去看。" },
+					{ point: "30.919004,114.401757", text: "好" }
+                ];
+                var infowindows = [];
+                $.each(i_love_you_s, function(i, i_love_you){
+                    var point = i_love_you.point.split(",");
+                    var infowindow = new google.maps.InfoWindow({
+                        content: i_love_you.text,
+                        position: new google.maps.LatLng(point[0], point[1])
+                    });
+                    infowindows.push(infowindow);
+                });
+				
+				 loopInfoWindows(infowindows, 4000, function(){
+                    
+                });
+			}
+			
+			/**显示爱心岛**/
+            function showHeartIsland(){
+                map.panTo(HEART_ISLAND);
+                smoothZoom(16, function(){
+                    map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+                    setTimeout(function(){showPhotos()}, 2000);
+                });
+            }
+			
+			/**显示爱心岛上的图片**/
+            function showPhotos(){
+                var PHOTO_BASE = "photos/";
+                var photos = [
+                    { point: "43.97855, 15.38354", src: PHOTO_BASE + "12.jpg" },
+                    { point: "43.97844, 15.38459", src: PHOTO_BASE + "2.jpg" },
+                    { point: "43.97847, 15.38215", src: PHOTO_BASE + "14.png" },
+                    { point: "43.97907, 15.38198", src: PHOTO_BASE + "10.jpg" },
+                    { point: "43.97957, 15.38472", src: PHOTO_BASE + "3.jpg" },
+                    { point: "43.98028, 15.38552", src: PHOTO_BASE + "17.png" },
+                    { point: "43.97932, 15.38112", src: PHOTO_BASE + "9.jpg" },
+                    { point: "43.97694, 15.38354", src: PHOTO_BASE + "7.jpg" },
+                    { point: "43.97819, 15.38485", src: PHOTO_BASE + "18.png" },
+                    { point: "43.97861, 15.38178", src: PHOTO_BASE + "2.jpg" },
+                    { point: "43.97788, 15.38363", src: PHOTO_BASE + "15.png" },
+                    { point: "43.97836, 15.38496", src: PHOTO_BASE + "5.jpg" },
+                    { point: "43.97952, 15.38545", src: PHOTO_BASE + "11.jpg" },
+                    { point: "43.97850, 15.38288", src: PHOTO_BASE + "8.jpg" },
+                    { point: "43.97850, 15.38288", src: PHOTO_BASE + "13.jpg" },
+                    { point: "43.97768, 15.38373", src: PHOTO_BASE + "4.jpg" },
+                    { point: "43.97768, 15.38373", src: PHOTO_BASE + "16.png" },
+                    { point: "43.97768, 15.38373", src: PHOTO_BASE + "6.png" }
+                ];
+                var infowindows = [];
+                $.each(photos, function(i, photo){
+                    var point = photo.point.split(",");
+                    var infowindow = new google.maps.InfoWindow({
+                        content: "<img height=200 width = 250 src='" + photo.src + "'/>",
+                        position: new google.maps.LatLng(point[0], point[1])
+                    });
+                    infowindows.push(infowindow);
+                });
+                loopInfoWindows(infowindows, 2000, function(){
+                    map.panTo(HEART_ISLAND);
+                    smoothZoom(3, function(){
+                        map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+                        map.panTo(DEFAULT_CENTER);
+                        showILoveYous();
+                    });
+                });
+
+            }
+
+			/**显示多国“我爱你”语言**/
+            function showILoveYous(){
+                var i_love_you_s = [
+                    { point: "52.9, -0.5", text: "I Love You!!" },
+                    { point: "52.6, 10.9", text: "Ich liebe Dich!!" },
+                    { point: "53.3, 20.7", text: "Kocham Ci?!!" },
+                    { point: "48.8, 5.1", text: "Je t'aime!!" },
+                    { point: "39.8, -8.9", text: "Eu te amo!!" },
+                    { point: "39.6, -3.3", text: "Te amo!!" },
+                    { point: "42.9, 13.9", text: "Ti amo!!" },
+                    { point: "61.5, 88.6", text: "Я люблю тебя!!" },
+                    { point: "36.6, 138.9", text: "私はあなたを愛して!!" },
+                    { point: "36.9, 127.6", text: "? ? ???!!" },
+                    { point: "30.6, 114.3", text: "我爱你!!" },
+                    { point: "30.6, 114.3", text: "我爱你" }
+                ];
+                var infowindows = [];
+                $.each(i_love_you_s, function(i, i_love_you){
+                    var point = i_love_you.point.split(",");
+                    var infowindow = new google.maps.InfoWindow({
+                        content: "<b>" + i_love_you.text + "</b>",
+                        position: new google.maps.LatLng(point[0], point[1])
+                    });
+                    infowindows.push(infowindow);
+                });
+                loopInfoWindows(infowindows, 2000, function(){
+                    map.panTo(HUNAN);
+                    smoothZoom(7, function(){
+						map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+                        map.panTo(HUNAN);
+						setTimeout(function(){
+							showMoveSymble();
+						}, 2000);
+                    });
+                });
+
+            }
+			
+			
+			/**显示两地路线**/
+			function showLine(){
+			  var flightPlanCoordinates = [
+                
+				new google.maps.LatLng(30.619004, 114.301757),
+                new google.maps.LatLng(29.828824,114.323730),
+                new google.maps.LatLng(29.726222,113.933715),
+                new google.maps.LatLng(29.348663,113.131713),
+                
+                new google.maps.LatLng(28.212449,112.950439),
+				new google.maps.LatLng(27.800209,112.961425),
+                new google.maps.LatLng(26.882880,112.587890),
+                new google.maps.LatLng(26.396790,111.632080),
+				new google.maps.LatLng(25.311752,110.297927)
+			  ];
+			  var flightPath = new google.maps.Polyline({
+				path: flightPlanCoordinates,
+				strokeColor: "#FF0000",
+				strokeOpacity: 1.0,
+				strokeWeight: 2
+			  });
+			  flightPath.setMap(map);
+			  setTimeout(function(){
+                        willYouLoveMeForever();
+                    }, 9000);
+			}
+			
+			var line;
+			/**显示路线及运动图标**/
+			function showMoveSymble(){
+				var flightPlanCoordinates = [
+					new google.maps.LatLng(30.619004, 114.301757),
+					new google.maps.LatLng(29.828824,114.323730),
+					new google.maps.LatLng(29.726222,113.933715),
+					new google.maps.LatLng(29.348663,113.131713),
+					new google.maps.LatLng(28.212449,112.950439),
+					new google.maps.LatLng(27.800209,112.961425),
+					new google.maps.LatLng(26.882880,112.587890),
+					new google.maps.LatLng(26.396790,111.632080),
+					new google.maps.LatLng(25.311752,110.297927)
+				];
+				var lineSymbol = {
+					path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+					scale: 2,
+					strokeColor: '#FF0000'
+				  };
+				  line = new google.maps.Polyline({
+					path: flightPlanCoordinates,
+					strokeColor: "#FF0000",
+					strokeOpacity: 1.0,
+					strokeWeight: 2,
+					icons: [{
+					  icon: lineSymbol,
+					  offset: '100%'
+					}],
+					map: map
+				  });
+				  animateCircle();
+				  
+                  setTimeout(function(){
+                       willYouLoveMeForever();
+                  }, 4000);	  
+
+			}
+			function animateCircle() {
+					var count = 0;
+					var animate1=window.setInterval(function() {
+					  count = (count + 1) % 200;
+
+					  var icons = line.get('icons');
+					  icons[0].offset = (count / 2) + '%';
+					  line.set('icons', icons);
+					  
+					  if((count / 2)>=99){
+						clearInterval(animate1);
+					  }
+					  
+					}, 20);
+					
+					
+				}
+			
+			
+			/**显示最后的对话**/
+			function willYouLoveMeForever(){
+                window.my_infowindow = new google.maps.InfoWindow({
+                    content: "我爱你, 你愿意嫁给我吗?",
+                    position: WUHAN
+                });
+                my_infowindow.open(map);
+
+                window.your_infowindow = new google.maps.InfoWindow({
+                    content: '<select>' +
+                                '<option value="yes">我愿意.</option>' +
+                                '<option value="yes">我愿意.</option>' +
+                                '<option value="yes">我愿意.</option>' +
+                                '<option value="yes">我愿意.</option>' +
+                             '</select>' +
+                             '<input type="button" value="submit" ' +
+                             'onclick="my_infowindow.close();your_infowindow.close();theEnd();" />',
+                    position: GUILIN
+                });
+                setTimeout(function(){
+                    your_infowindow.open(map);
+                }, 1000);
+            } 
+			
+            
+			
+			
+			
+			
+
+			
+			
+           
+        }();
+
+        </script>
+
+        <script type="text/javascript" src="js/PxLoader.js"></script>
+        <script type="text/javascript" src="js/PxLoaderImage.js"></script>
+        <script type="text/javascript">
+
+            var preloader = new PxLoader(); 
+
+            for(var i = 1; i <= 13; i++){
+                preloader.add( new PxLoaderImage("photos/" + "you" + i + ".jpg"), "you" );
+            }
+            for(var i = 1; i <= 2; i++){
+                preloader.add( new PxLoaderImage("photos/" + "me" + i + ".jpg"), "me" );
+            }
+            preloader.start(["you", "me"]);
+
+
+        </script>
+
+        <script type="text/javascript">
+
+          var _gaq = _gaq || [];
+          // set your gogle analytics account below 
+          _gaq.push(['_setAccount', '']); 
+          _gaq.push(['_trackPageview']);
+
+          (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+          })();
+
+        </script>
+
+    </body>
+</html>
